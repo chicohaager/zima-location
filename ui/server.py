@@ -15,6 +15,13 @@ from urllib.parse import urlparse, parse_qs
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLI = "/DATA/AppData/zima-location/zima-location.sh"
 USABLE_FS = {"ext4", "ext3", "btrfs", "xfs"}
+# ZimaOS internal partitions to hide from the picker (system/boot/overlay, not user data).
+SYSTEM_MPS = {"/", "/boot", "/mnt/overlay", "/var/lib/casaos_data"}
+
+
+def is_system_partition(label, fstype, mp):
+    return (label.startswith("casaos-") or fstype == "squashfs"
+            or mp in SYSTEM_MPS)
 
 
 def run(cmd):
@@ -38,6 +45,8 @@ def list_disks():
         fstype = field("TYPE")
         mp = run(["findmnt", "-rno", "TARGET", "-S", f"UUID={uuid}"]).stdout.splitlines()
         mp = mp[0] if mp else ""
+        if is_system_partition(field("LABEL"), fstype, mp):
+            continue  # hide ZimaOS system/overlay/boot partitions
         size = avail = ""
         if mp:
             df = run(["df", "-hP", mp]).stdout.splitlines()

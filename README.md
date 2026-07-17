@@ -2,6 +2,8 @@
 
 **Redirect where your ZimaOS / CasaOS apps store their data — once, for all apps — reboot-safe and disk-letter-proof.**
 
+![zima-location web UI](docs/screenshot.png)
+
 ## The problem
 
 On ZimaOS / CasaOS every app from the store hard-codes its host paths to the
