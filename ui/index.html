@@ -5,50 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>zima-location</title>
 <style>
-  :root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mut:#6b7480;--line:#e3e7ee;--acc:#2f6fed;--bad:#c23b3b;--ok:#1c8a4a}
-  @media (prefers-color-scheme:dark){:root{--bg:#12151b;--card:#1b1f27;--fg:#e6e9ef;--mut:#9aa3b0;--line:#2a2f39;--acc:#5b8dff}}
-  *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
-  .wrap{max-width:720px;margin:0 auto;padding:24px 16px}
-  h1{font-size:20px;margin:0 0 2px}.sub{color:var(--mut);margin:0 0 20px;font-size:13px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:0 0 12px}
-  label.disk{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer}
+  /* Palette mirrors ZFW (chicohaager/zfw) — warm paper + forest green, single light theme. */
+  :root{
+    --page-bg:#F5F4EE; --card-bg:#FFFFFF; --card-border:#ECE9DF;
+    --card-radius:18px; --card-radius-sm:12px;
+    --card-shadow:0 1px 2px rgba(15,23,42,.04),0 6px 18px rgba(15,23,42,.05);
+    --card-shadow-hover:0 1px 2px rgba(15,23,42,.05),0 10px 24px rgba(15,23,42,.08);
+    --text:#0F1F1A; --text-muted:#6B7280; --text-on-accent:#FFFFFF;
+    --accent:#234B3E; --accent-hover:#1A3A2F; --accent-tint:#DCEFE5; --accent-ring:rgba(35,75,62,.18);
+    --success:#166534; --success-tint:#DCFCE7; --warn:#B45309; --warn-tint:#FEF3C7;
+    --danger:#B91C1C; --danger-tint:#FEE2E2; --neutral-tint:#F1F5F9;
+    --font-sans:"Fira Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --font-mono:"Fira Code",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--page-bg)}
+  body{margin:0;font-family:var(--font-sans);color:var(--text);font-size:15px;line-height:1.5}
+  code{font-family:var(--font-mono);font-size:.92em}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 18px 48px}
+  header{margin-bottom:22px}
+  h1{font-size:22px;margin:0;display:flex;align-items:center;gap:10px}
+  .pill{font-size:11px;color:var(--accent);font-weight:600;background:var(--accent-tint);border-radius:999px;padding:3px 10px}
+  .subtitle{color:var(--text-muted);margin:6px 0 0;font-size:14px}
+  .card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);padding:18px;margin-bottom:16px;box-shadow:var(--card-shadow)}
+  .card h2{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:0 0 14px}
+  /* active redirect rows */
+  .red{display:flex;align-items:center;gap:10px;border:1px solid var(--card-border);border-radius:var(--card-radius-sm);padding:11px 12px;margin-bottom:8px;font-size:14px}
+  .red code{color:var(--text)}
+  .red .st{margin-left:auto;font-size:11px;font-weight:600;color:var(--success);background:var(--success-tint);border-radius:999px;padding:3px 9px;white-space:nowrap}
+  /* disk picker */
+  label.disk{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--card-border);border-radius:var(--card-radius-sm);margin-bottom:8px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+  label.disk:hover{border-color:var(--accent-ring)}
+  label.disk:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
   label.disk.off{opacity:.5;cursor:not-allowed}
-  .disk .meta{margin-left:auto;text-align:right;color:var(--mut);font-size:12px}
-  .disk b{font-weight:600}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:8px}
-  .row .f{flex:1;min-width:140px}.f label{display:block;font-size:12px;color:var(--mut);margin-bottom:4px}
-  input,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:8px 10px;background:var(--card);color:var(--fg)}
-  button{cursor:pointer;border-color:transparent}
-  .btn{background:var(--acc);color:#fff;font-weight:600}
-  .btn.sm{padding:5px 10px;font-size:13px}
-  .btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
-  .red{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:14px}
-  .red code{color:var(--fg)}.red .st{margin-left:auto;color:var(--ok);font-size:12px}
-  pre{background:#0d1017;color:#cdd6e4;border-radius:8px;padding:12px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:8px 0 0}
-  .warn{background:rgba(194,59,59,.08);border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:10px}
-  .empty{color:var(--mut);font-size:13px}
+  label.disk input{accent-color:var(--accent);width:16px;height:16px}
+  .disk b{font-weight:600}.disk .fs{color:var(--text-muted)}
+  .disk .uuid{color:var(--text-muted);font-size:12px;font-family:var(--font-mono)}
+  .disk .meta{margin-left:auto;text-align:right;color:var(--text-muted);font-size:12px;white-space:nowrap}
+  /* form */
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:12px}
+  .row .f{flex:1;min-width:150px}.f label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px}
+  input[type=text],input:not([type]){font:inherit;width:100%;border-radius:var(--card-radius-sm);border:1px solid var(--card-border);padding:9px 11px;background:var(--card-bg);color:var(--text)}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+  button{font:inherit;font-weight:600;cursor:pointer;border-radius:var(--card-radius-sm);border:1px solid transparent;padding:9px 16px}
+  .btn{background:var(--accent);color:var(--text-on-accent)}.btn:hover{background:var(--accent-hover)}
+  .btn.sm{padding:6px 12px;font-size:13px}
+  .btn.danger{background:transparent;color:var(--danger);border-color:var(--danger)}
+  .btn.danger:hover{background:var(--danger-tint)}
+  /* warn banner (ZFW style: warn-tint + left rule) */
+  .warn{background:var(--warn-tint);border:1px solid var(--warn);border-left:4px solid var(--warn);border-radius:var(--card-radius-sm);padding:9px 11px;font-size:12.5px;color:var(--text);margin-top:12px}
+  pre{background:#0F1F1A;color:#DCEFE5;border-radius:var(--card-radius-sm);padding:12px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:12px 0 0;font-family:var(--font-mono)}
+  .empty{color:var(--text-muted);font-size:13px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>zima-location</h1>
-  <p class="sub">Point <code>/DATA/Media</code> (and other app anchors) at any disk by UUID — reboot-safe, disk-letter-proof.</p>
+  <header>
+    <h1>zima-location <span class="pill">reboot-safe · UUID-pinned</span></h1>
+    <p class="subtitle">Point <code>/DATA/Media</code> (and other app anchors) at any disk by UUID &mdash; the global storage setting ZimaOS does not ship.</p>
+  </header>
 
   <div class="card">
     <h2>Active redirects</h2>
-    <div id="status"><span class="empty">loading…</span></div>
+    <div id="status"><span class="empty">loading&hellip;</span></div>
   </div>
 
   <div class="card">
     <h2>New redirect</h2>
-    <div id="disks"><span class="empty">loading disks…</span></div>
+    <div id="disks"><span class="empty">loading disks&hellip;</span></div>
     <div class="row">
-      <div class="f"><label>Anchor</label><input id="anchor" value="/DATA/Media"></div>
-      <div class="f"><label>Subdir on disk</label><input id="sub" value="Media"></div>
+      <div class="f"><label>Anchor</label><input type="text" id="anchor" value="/DATA/Media"></div>
+      <div class="f"><label>Subdir on disk</label><input type="text" id="sub" value="Media"></div>
       <div class="f" style="flex:0"><label>&nbsp;</label><button class="btn" onclick="doSet()">Apply</button></div>
     </div>
-    <div class="warn">Runs as root on the host. Only native Linux fs (ext4/btrfs/xfs) can be selected. Redirecting <code>/DATA/AppData</code> is riskier — stop apps first.</div>
+    <div class="warn">Runs as root on the host. Only native Linux fs (ext4/btrfs/xfs) is selectable. Redirecting <code>/DATA/AppData</code> is riskier &mdash; stop apps first.</div>
     <pre id="log" style="display:none"></pre>
   </div>
 </div>
@@ -59,8 +89,8 @@ function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':
 async function loadStatus(){
   const d=await api('status');const el=$('#status');
   if(!d.redirects||!d.redirects.length){el.innerHTML='<span class="empty">none</span>';return;}
-  el.innerHTML=d.redirects.map(r=>`<div class="red"><code>${esc(r.anchor)}</code> → <code>${esc(r.source||'?')}</code>
-    <span class="st">${esc(r.active)}/${esc(r.enabled)}</span>
+  el.innerHTML=d.redirects.map(r=>`<div class="red"><code>${esc(r.anchor)}</code> &rarr; <code>${esc(r.source||'?')}</code>
+    <span class="st">${esc(r.active)} / ${esc(r.enabled)}</span>
     <button class="btn sm danger" onclick="doRollback('${esc(r.anchor)}')">Rollback</button></div>`).join('');
 }
 async function loadDisks(){
@@ -68,8 +98,8 @@ async function loadDisks(){
   if(!d.disks||!d.disks.length){el.innerHTML='<span class="empty">no disks found</span>';return;}
   el.innerHTML=d.disks.map((x,i)=>`<label class="disk ${x.usable?'':'off'}">
     <input type="radio" name="disk" value="${esc(x.uuid)}" ${x.usable?'':'disabled'} ${i===0&&x.usable?'checked':''}>
-    <span><b>${esc(x.label||x.dev)}</b> <span style="color:var(--mut)">${esc(x.fstype)}${x.usable?'':' — not usable'}</span><br>
-    <span style="color:var(--mut);font-size:12px">${esc(x.uuid)}</span></span>
+    <span><b>${esc(x.label||x.dev)}</b> <span class="fs">${esc(x.fstype)}${x.usable?'':' — not usable'}</span><br>
+    <span class="uuid">${esc(x.uuid)}</span></span>
     <span class="meta">${esc(x.size||'?')} total<br>${esc(x.avail||'?')} free</span></label>`).join('');
 }
 async function doSet(){
