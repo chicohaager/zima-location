@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zima-location</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mut:#6b7480;--line:#e3e7ee;--acc:#2f6fed;--bad:#c23b3b;--ok:#1c8a4a}
+  @media (prefers-color-scheme:dark){:root{--bg:#12151b;--card:#1b1f27;--fg:#e6e9ef;--mut:#9aa3b0;--line:#2a2f39;--acc:#5b8dff}}
+  *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px}
+  h1{font-size:20px;margin:0 0 2px}.sub{color:var(--mut);margin:0 0 20px;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:0 0 12px}
+  label.disk{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;cursor:pointer}
+  label.disk.off{opacity:.5;cursor:not-allowed}
+  .disk .meta{margin-left:auto;text-align:right;color:var(--mut);font-size:12px}
+  .disk b{font-weight:600}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-top:8px}
+  .row .f{flex:1;min-width:140px}.f label{display:block;font-size:12px;color:var(--mut);margin-bottom:4px}
+  input,button{font:inherit;border-radius:8px;border:1px solid var(--line);padding:8px 10px;background:var(--card);color:var(--fg)}
+  button{cursor:pointer;border-color:transparent}
+  .btn{background:var(--acc);color:#fff;font-weight:600}
+  .btn.sm{padding:5px 10px;font-size:13px}
+  .btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+  .red{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:14px}
+  .red code{color:var(--fg)}.red .st{margin-left:auto;color:var(--ok);font-size:12px}
+  pre{background:#0d1017;color:#cdd6e4;border-radius:8px;padding:12px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:8px 0 0}
+  .warn{background:rgba(194,59,59,.08);border:1px solid var(--bad);color:var(--bad);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:10px}
+  .empty{color:var(--mut);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>zima-location</h1>
+  <p class="sub">Point <code>/DATA/Media</code> (and other app anchors) at any disk by UUID — reboot-safe, disk-letter-proof.</p>
+
+  <div class="card">
+    <h2>Active redirects</h2>
+    <div id="status"><span class="empty">loading…</span></div>
+  </div>
+
+  <div class="card">
+    <h2>New redirect</h2>
+    <div id="disks"><span class="empty">loading disks…</span></div>
+    <div class="row">
+      <div class="f"><label>Anchor</label><input id="anchor" value="/DATA/Media"></div>
+      <div class="f"><label>Subdir on disk</label><input id="sub" value="Media"></div>
+      <div class="f" style="flex:0"><label>&nbsp;</label><button class="btn" onclick="doSet()">Apply</button></div>
+    </div>
+    <div class="warn">Runs as root on the host. Only native Linux fs (ext4/btrfs/xfs) can be selected. Redirecting <code>/DATA/AppData</code> is riskier — stop apps first.</div>
+    <pre id="log" style="display:none"></pre>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+async function api(a,body){const o=body?{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)}:{};const r=await fetch('/api?action='+a,o);return r.json();}
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+async function loadStatus(){
+  const d=await api('status');const el=$('#status');
+  if(!d.redirects||!d.redirects.length){el.innerHTML='<span class="empty">none</span>';return;}
+  el.innerHTML=d.redirects.map(r=>`<div class="red"><code>${esc(r.anchor)}</code> → <code>${esc(r.source||'?')}</code>
+    <span class="st">${esc(r.active)}/${esc(r.enabled)}</span>
+    <button class="btn sm danger" onclick="doRollback('${esc(r.anchor)}')">Rollback</button></div>`).join('');
+}
+async function loadDisks(){
+  const d=await api('disks');const el=$('#disks');
+  if(!d.disks||!d.disks.length){el.innerHTML='<span class="empty">no disks found</span>';return;}
+  el.innerHTML=d.disks.map((x,i)=>`<label class="disk ${x.usable?'':'off'}">
+    <input type="radio" name="disk" value="${esc(x.uuid)}" ${x.usable?'':'disabled'} ${i===0&&x.usable?'checked':''}>
+    <span><b>${esc(x.label||x.dev)}</b> <span style="color:var(--mut)">${esc(x.fstype)}${x.usable?'':' — not usable'}</span><br>
+    <span style="color:var(--mut);font-size:12px">${esc(x.uuid)}</span></span>
+    <span class="meta">${esc(x.size||'?')} total<br>${esc(x.avail||'?')} free</span></label>`).join('');
+}
+async function doSet(){
+  const uuid=(document.querySelector('input[name=disk]:checked')||{}).value;
+  if(!uuid){alert('Pick a usable disk first.');return;}
+  const anchor=$('#anchor').value.trim(),sub=$('#sub').value.trim()||'Media';
+  if(!confirm(`Redirect ${anchor} → this disk /${sub}?\nExisting files in ${anchor} are copied to the disk (backup kept).`))return;
+  showLog('Applying…');const d=await api('set',{anchor,uuid,sub});showLog(d.log||JSON.stringify(d));loadStatus();
+}
+async function doRollback(anchor){
+  if(!confirm(`Remove redirect for ${anchor}? Data on the target disk is kept.`))return;
+  showLog('Rolling back…');const d=await api('rollback',{anchor});showLog(d.log||JSON.stringify(d));loadStatus();
+}
+function showLog(t){const p=$('#log');p.style.display='block';p.textContent=t;}
+loadStatus();loadDisks();
+</script>
+</body>
+</html>
