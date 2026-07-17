@@ -91,7 +91,8 @@ async function loadStatus(){
   if(!d.redirects||!d.redirects.length){el.innerHTML='<span class="empty">none</span>';return;}
   el.innerHTML=d.redirects.map(r=>`<div class="red"><code>${esc(r.anchor)}</code> &rarr; <code>${esc(r.source||'?')}</code>
     <span class="st">${esc(r.active)} / ${esc(r.enabled)}</span>
-    <button class="btn sm danger" onclick="doRollback('${esc(r.anchor)}')">Rollback</button></div>`).join('');
+    <button class="btn sm danger" data-anchor="${esc(r.anchor)}">Rollback</button></div>`).join('');
+  el.querySelectorAll('button[data-anchor]').forEach(b=>b.addEventListener('click',()=>doRollback(b.dataset.anchor)));
 }
 async function loadDisks(){
   const d=await api('disks');const el=$('#disks');

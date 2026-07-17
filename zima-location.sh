@@ -16,8 +16,9 @@
 # Muss als root laufen.
 set -euo pipefail
 
-VERSION="0.2.0"
-HELPER_DIR="/DATA/AppData/zima-location"
+VERSION="0.2.1"
+# Root-only location (NOT world-writable /DATA/AppData, which ZimaOS ships 0777 -> local privesc).
+HELPER_DIR="/etc/zima-location"
 HELPER="$HELPER_DIR/redirect.sh"
 UNIT_DIR="/etc/systemd/system"
 TAG="zima-location"
@@ -27,10 +28,19 @@ log(){ echo "[$TAG] $*"; }
 need_root(){ [ "$(id -u)" = 0 ] || die "muss als root laufen (sudo)."; }
 svc_name(){ echo "${TAG}-$(systemd-escape -p "$1").service"; }   # /DATA/Media -> zima-location-DATA-Media.service
 
-# ---- Helper-Script (resolver+bind) ausrollen: shipped-File bevorzugen, sonst embedded fallback ----
+# ---- Input-Validierung (verhindert systemd-Unit-/Shell-Injection über anchor/uuid/sub) ----
+validate_inputs(){
+  local a="$1" u="$2" s="$3"
+  [[ "$a" =~ ^/[A-Za-z0-9._/-]+$ ]] || die "ungültiger anchor: absoluter Pfad, nur [A-Za-z0-9._/-]"
+  case "$a" in *..*) die "anchor darf kein '..' enthalten";; esac
+  [[ "$u" =~ ^[0-9A-Fa-f-]+$ ]]     || die "ungültige UUID"
+  [[ "$s" =~ ^[A-Za-z0-9._/-]+$ ]]  || die "ungültiges subdir: nur [A-Za-z0-9._/-]"
+  case "$s" in /*|*..*) die "subdir muss relativ sein, kein '..'";; esac
+}
+
+# ---- Helper-Script (resolver+bind) IMMER kanonisch schreiben (kein Vertrauen in on-disk-File), root-only ----
 install_helper(){
-  mkdir -p "$HELPER_DIR"
-  if [ -f "$HELPER" ]; then chmod 0755 "$HELPER"; return; fi   # shipped redirect.sh wins (avoids drift)
+  mkdir -p "$HELPER_DIR"; chown root:root "$HELPER_DIR" 2>/dev/null || true; chmod 0755 "$HELPER_DIR"
   cat > "$HELPER" <<'HELPER_EOF'
 #!/bin/bash
 # zima-location redirect helper — resolves UUID->live mountpoint at boot, then bind-mounts.
@@ -52,7 +62,7 @@ if mountpoint -q "$ANCHOR"; then umount "$ANCHOR" 2>/dev/null || true; fi
 mount --bind "$SRC" "$ANCHOR"
 log "gebunden: $ANCHOR -> $SRC (UUID $UUID @ $MP)"
 HELPER_EOF
-  chmod 0755 "$HELPER"
+  chown root:root "$HELPER" 2>/dev/null || true; chmod 0755 "$HELPER"
 }
 
 validate_uuid(){
@@ -106,6 +116,7 @@ cmd_status(){
 cmd_set(){
   local anchor="${1:-}" uuid="${2:-}" sub="${3:-Media}"
   [ -n "$anchor" ] && [ -n "$uuid" ] || die "usage: set <anchor> <uuid> [subdir=Media]"
+  validate_inputs "$anchor" "$uuid" "$sub"
   local fstype; fstype="$(validate_uuid "$uuid")"
   local mp; mp="$(findmnt -rno TARGET -S UUID="$uuid" 2>/dev/null | head -1)"
   [ -n "$mp" ] || die "UUID $uuid derzeit nicht gemountet — Platte einstecken/mounten."

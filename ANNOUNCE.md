@@ -29,12 +29,19 @@ from `/dev/sdd` to `/dev/sdb`, and `/DATA/Media` stayed correctly bound. 🎯
 - optional tiny web UI (python3)
 - MIT OR Apache-2.0
 
-**Repo + install:** https://github.com/chicohaager/zima-location
+![zima-location web UI](https://raw.githubusercontent.com/chicohaager/zima-location/main/docs/screenshot.png)
+
+**Repo:** https://github.com/chicohaager/zima-location
+**Release v0.2.0:** https://github.com/chicohaager/zima-location/releases/tag/v0.2.0
 
 ```
 curl -fsSL https://raw.githubusercontent.com/chicohaager/zima-location/main/install.sh | sudo bash
 sudo /DATA/AppData/zima-location/zima-location.sh list-disks
 sudo /DATA/AppData/zima-location/zima-location.sh set /DATA/Media <UUID> Media
 ```
+
+There's also an optional little web UI (pick a disk → Apply). Heads-up: it runs as
+root and is unauthenticated, so keep it localhost-only (SSH tunnel) — don't expose
+the port.
 
 Not affiliated with IceWhale. Feedback / issues welcome. Test `rollback` first. 🙂
