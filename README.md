@@ -52,23 +52,23 @@ git clone https://github.com/chicohaager/zima-location
 cd zima-location && sudo ./install.sh
 ```
 
-Files land in `/DATA/AppData/zima-location/`.
+Files land in `/etc/zima-location/`.
 
 ## Usage
 
 ```bash
 # 1. See your ext4/btrfs disks and their UUIDs
-sudo /DATA/AppData/zima-location/zima-location.sh list-disks
+sudo /etc/zima-location/zima-location.sh list-disks
 
 # 2. Redirect /DATA/Media to <UUID>/Media on the chosen disk
-sudo /DATA/AppData/zima-location/zima-location.sh set /DATA/Media <UUID> Media
+sudo /etc/zima-location/zima-location.sh set /DATA/Media <UUID> Media
 
 # 3. Restart any already-running app that mounts the anchor, so it picks it up
 sudo docker restart <app>
 
 # Check status / roll back anytime
-sudo /DATA/AppData/zima-location/zima-location.sh status
-sudo /DATA/AppData/zima-location/zima-location.sh rollback /DATA/Media
+sudo /etc/zima-location/zima-location.sh status
+sudo /etc/zima-location/zima-location.sh rollback /DATA/Media
 ```
 
 If the anchor already contained files, they are `rsync`-copied to the target and
@@ -90,14 +90,16 @@ A small browser UI (pick a disk → Apply / Rollback) is included under `ui/`.
 It needs **python3** on the host (the CLI itself does not).
 
 ```bash
-sudo /DATA/AppData/zima-location/ui/install-ui.sh 9797   # from the repo: sudo ui/install-ui.sh
+sudo /etc/zima-location/ui/install-ui.sh 9797   # from the repo: sudo ui/install-ui.sh
 ```
 
-> ⚠️ **Security:** the UI backend runs as **root** and is **unauthenticated** —
-> it can redirect storage for anyone who reaches the port. It is intended to sit
-> **localhost-only** (reach it via an SSH tunnel: `ssh -L 9797:localhost:9797 <host>`)
-> or behind the ZimaOS gateway's auth. Do **not** expose port 9797 to an untrusted
-> network. On ZimaOS the firewall (ZFW) blocks it by default — that default is correct.
+> ⚠️ **Security:** the UI backend runs as **root**. It **binds `127.0.0.1` by
+> default** — reach it via an SSH tunnel (`ssh -L 9797:localhost:9797 <host>`).
+> Requests are guarded against DNS-rebinding / cross-site POST (Host + Origin
+> checks). To expose it on the LAN set `ZL_BIND=0.0.0.0` (and ideally
+> `ZL_TOKEN=<secret>`) before running `install-ui.sh` — at your own risk, behind
+> the ZimaOS firewall. Don't expose an unauthenticated root service to an
+> untrusted network.
 
 ## Notes & caveats
 
