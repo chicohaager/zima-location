@@ -16,7 +16,7 @@
 # Muss als root laufen.
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 HELPER_DIR="/DATA/AppData/zima-location"
 HELPER="$HELPER_DIR/redirect.sh"
 UNIT_DIR="/etc/systemd/system"
