@@ -38,7 +38,7 @@ set -euo pipefail
 ANCHOR="${1:?anchor}"; UUID="${2:?uuid}"; SUB="${3:-Media}"
 log(){ echo "[zima-location] $*"; }
 MP=""
-for i in $(seq 1 60); do
+for _ in $(seq 1 60); do
   MP="$(findmnt -rno TARGET -S UUID="$UUID" 2>/dev/null | head -1 || true)"
   [ -n "$MP" ] && break
   sleep 1

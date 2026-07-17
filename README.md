@@ -82,6 +82,21 @@ the old folder is backed up next to it as `<anchor>.pre-zl` (nothing is deleted)
 - `rollback` disables the unit, unmounts the anchor and removes the unit. Your
   data stays on the target disk.
 
+## Optional web UI
+
+A small browser UI (pick a disk → Apply / Rollback) is included under `ui/`.
+It needs **python3** on the host (the CLI itself does not).
+
+```bash
+sudo /DATA/AppData/zima-location/ui/install-ui.sh 9797   # from the repo: sudo ui/install-ui.sh
+```
+
+> ⚠️ **Security:** the UI backend runs as **root** and is **unauthenticated** —
+> it can redirect storage for anyone who reaches the port. It is intended to sit
+> **localhost-only** (reach it via an SSH tunnel: `ssh -L 9797:localhost:9797 <host>`)
+> or behind the ZimaOS gateway's auth. Do **not** expose port 9797 to an untrusted
+> network. On ZimaOS the firewall (ZFW) blocks it by default — that default is correct.
+
 ## Notes & caveats
 
 - **`/DATA/Media` is the safe, recommended anchor.** Redirecting `/DATA/AppData`

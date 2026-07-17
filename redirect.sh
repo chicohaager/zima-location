@@ -9,7 +9,7 @@ log(){ echo "[zima-location] $*"; }
 # Resolve UUID -> current mountpoint (whatever letter the automounter assigned this boot).
 # Retry up to 60s in case the disk is mounted late.
 MP=""
-for i in $(seq 1 60); do
+for _ in $(seq 1 60); do
   MP="$(findmnt -rno TARGET -S UUID="$UUID" 2>/dev/null | head -1 || true)"
   [ -n "$MP" ] && break
   sleep 1
