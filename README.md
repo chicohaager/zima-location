@@ -110,6 +110,30 @@ sudo /etc/zima-location/ui/install-ui.sh 9797   # from the repo: sudo ui/install
   disk instead, a device mount is simpler — not this tool's job.
 - Not affiliated with IceWhale. Use at your own risk; test `rollback` first.
 
+## Tests
+
+```bash
+tests/run.sh
+```
+
+Runs the real `list-disks` / `set` entry points against fake `blkid`/`findmnt`/`ip`
+on `PATH` — no root, no real disks, nothing written to the system. Covers the
+`set -euo pipefail` abort class (disk without `LABEL`, unmounted UUID, host with
+no default route) plus a doc check that no path points at the old world-writable
+`/DATA/AppData` location.
+
+`shellcheck` runs as a baseline if present (skipped otherwise). Note it does **not**
+catch the pipefail-abort class — verified with `-o all` against the pre-fix code,
+where it reported only brace-style hints on the offending lines. The behavioural
+tests are the detector for that class; keep them, don't lean on the linter.
+
+ZimaOS has no `apt`, so grab the static binary if you want it there:
+
+```bash
+curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz \
+  | tar -xJ && install -m 0755 shellcheck-v0.10.0/shellcheck ~/.local/bin/shellcheck
+```
+
 ## License
 
 Licensed under either of

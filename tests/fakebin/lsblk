@@ -1,0 +1,4 @@
+#!/bin/bash
+# Fake lsblk: validate_uuid fallback path.
+set -u
+printf "%s\n" "${ZLT_LSBLK:-}"

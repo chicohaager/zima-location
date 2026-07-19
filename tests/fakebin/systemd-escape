@@ -1,0 +1,3 @@
+#!/bin/bash
+# Safety stub: deterministic unit name, no real escaping needed.
+echo "DATA-Media"

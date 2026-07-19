@@ -1,0 +1,3 @@
+#!/bin/bash
+# Fake id: tests run as non-root, need_root() must pass.
+echo 0

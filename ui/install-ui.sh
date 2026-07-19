@@ -50,7 +50,9 @@ if [ "$ZL_BIND" = "127.0.0.1" ]; then
    Stop it:  sudo systemctl disable --now zima-location-ui.service
 EOF
 else
-  IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}')"
+  # '|| true': 'ip route get' liefert 2 ohne Default-Route (Host offline) -> pipefail
+  # wuerde den Installer hier abbrechen, obwohl unten '${IP:-<host-ip>}' den Leerfall kann.
+  IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || true)"
   cat <<EOF
 
 ✅ UI running on $ZL_BIND:$PORT  ->  http://${IP:-<host-ip>}:$PORT/

@@ -36,8 +36,8 @@ from `/dev/sdd` to `/dev/sdb`, and `/DATA/Media` stayed correctly bound. 🎯
 
 ```
 curl -fsSL https://raw.githubusercontent.com/chicohaager/zima-location/main/install.sh | sudo bash
-sudo /DATA/AppData/zima-location/zima-location.sh list-disks
-sudo /DATA/AppData/zima-location/zima-location.sh set /DATA/Media <UUID> Media
+sudo /etc/zima-location/zima-location.sh list-disks
+sudo /etc/zima-location/zima-location.sh set /DATA/Media <UUID> Media
 ```
 
 There's also an optional little web UI (pick a disk → Apply). Heads-up: it runs as

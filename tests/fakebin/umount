@@ -1,0 +1,3 @@
+#!/bin/bash
+# Safety no-op stub (tests must never touch the real system).
+exit 0

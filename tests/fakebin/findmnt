@@ -1,0 +1,17 @@
+#!/bin/bash
+# Fake findmnt. $ZLT_MOUNTED holds "uuid=mountpoint" pairs, space separated.
+# Exits 1 when the UUID is not mounted -- exactly like the real findmnt.
+# That non-zero exit is what the regression tests are about.
+set -u
+for arg in "$@"; do
+  case "$arg" in
+    UUID=*)
+      want="${arg#UUID=}"
+      for pair in ${ZLT_MOUNTED:-}; do
+        [ "${pair%%=*}" = "$want" ] && { echo "${pair#*=}"; exit 0; }
+      done
+      exit 1
+      ;;
+  esac
+done
+exit 1
