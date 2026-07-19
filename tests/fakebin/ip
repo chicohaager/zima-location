@@ -1,0 +1,5 @@
+#!/bin/bash
+# Fake ip: $ZLT_IP_RC simulates "no default route" (rc 2, host offline).
+set -u
+[ "${ZLT_IP_RC:-0}" != 0 ] && exit "$ZLT_IP_RC"
+echo "1.1.1.1 via 192.168.1.1 dev eth0 src 192.168.1.143 uid 0"

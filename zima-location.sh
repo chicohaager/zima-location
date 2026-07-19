@@ -16,7 +16,7 @@
 # Muss als root laufen.
 set -euo pipefail
 
-VERSION="0.2.1"
+VERSION="0.2.2"
 # Root-only location (NOT world-writable /DATA/AppData, which ZimaOS ships 0777 -> local privesc).
 HELPER_DIR="/etc/zima-location"
 HELPER="$HELPER_DIR/redirect.sh"
@@ -84,9 +84,12 @@ cmd_list_disks(){
   while read -r line; do
     local dev uuid label mp
     dev="${line%%:*}"
-    uuid="$(echo "$line" | grep -oE 'UUID="[^"]+"' | head -1 | cut -d'"' -f2)"
-    label="$(echo "$line" | grep -oE 'LABEL="[^"]+"' | head -1 | cut -d'"' -f2)"
-    mp="$(findmnt -rno TARGET -S UUID="$uuid" 2>/dev/null | head -1)"
+    # '|| true' zwingend: ohne LABEL/UUID-Treffer liefert grep 1 -> set -o pipefail
+    # würde die Zuweisung fehlschlagen lassen und die Liste mittendrin abbrechen.
+    uuid="$(echo "$line" | grep -oE 'UUID="[^"]+"' | head -1 | cut -d'"' -f2 || true)"
+    label="$(echo "$line" | grep -oE 'LABEL="[^"]+"' | head -1 | cut -d'"' -f2 || true)"
+    [ -n "$uuid" ] || continue
+    mp="$(findmnt -rno TARGET -S UUID="$uuid" 2>/dev/null | head -1 || true)"
     printf "  %-12s UUID=%s  LABEL=%-10s  @ %s\n" "$dev" "$uuid" "${label:-–}" "${mp:-nicht gemountet}"
   done
 }
@@ -94,7 +97,7 @@ cmd_list_disks(){
 cmd_status(){
   echo "=== ZimaLocation Status ==="
   local found=0
-  for u in "$UNIT_DIR"/${TAG}-*.service; do
+  for u in "$UNIT_DIR/$TAG"-*.service; do
     [ -e "$u" ] || continue
     found=1
     local uname; uname="$(basename "$u")"
@@ -118,7 +121,9 @@ cmd_set(){
   [ -n "$anchor" ] && [ -n "$uuid" ] || die "usage: set <anchor> <uuid> [subdir=Media]"
   validate_inputs "$anchor" "$uuid" "$sub"
   local fstype; fstype="$(validate_uuid "$uuid")"
-  local mp; mp="$(findmnt -rno TARGET -S UUID="$uuid" 2>/dev/null | head -1)"
+  # '|| true': findmnt liefert 1 wenn die UUID nicht gemountet ist. Ohne Guard wuerde
+  # set -e hier still abbrechen und die freundliche die()-Meldung darunter nie zeigen.
+  local mp; mp="$(findmnt -rno TARGET -S UUID="$uuid" 2>/dev/null | head -1 || true)"
   [ -n "$mp" ] || die "UUID $uuid derzeit nicht gemountet — Platte einstecken/mounten."
   log "Ziel: UUID $uuid ($fstype) @ $mp, subdir '$sub' -> Anker $anchor"
 

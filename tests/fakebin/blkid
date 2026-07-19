@@ -1,0 +1,20 @@
+#!/bin/bash
+# Fake blkid. Fixture comes from $ZLT_BLKID (one blkid output line per line).
+# Supports: bare `blkid`, `blkid -U <uuid>`, `blkid -o value -s TYPE <dev>`.
+set -u
+lines(){ printf '%s\n' "$ZLT_BLKID"; }
+
+if [ "${1:-}" = "-U" ]; then                       # UUID -> device
+  dev="$(lines | grep -F "UUID=\"$2\"" | head -1 | cut -d: -f1)"
+  [ -n "$dev" ] || exit 2
+  echo "$dev"; exit 0
+fi
+
+if [ "${1:-}" = "-o" ]; then                       # -o value -s TYPE <dev>
+  dev="${*: -1}"
+  t="$(lines | grep -F "$dev:" | head -1 | grep -oE 'TYPE="[^"]+"' | cut -d'"' -f2)"
+  [ -n "$t" ] || exit 2
+  echo "$t"; exit 0
+fi
+
+lines
