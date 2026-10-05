@@ -1,0 +1,33 @@
+#!/bin/bash
+# systemctl for the namespace world (no PID-1 systemd). Models what the CLI relies on:
+# 'start'/'enable --now' run ExecStart only when the unit is not yet active (RemainAfterExit),
+# 'restart' always runs ExecStop + ExecStart, 'disable --now' runs ExecStop.
+# --no-block is accepted and ignored (the job runs synchronously here).
+# $ZLT_STATE/fail-restart makes start/restart fail (service start error); fail-once only the next one.
+# $ZLT_STATE/booting makes is-system-running answer "starting".
+# Every call is appended to $ZLT_STATE/calls.
+set -u
+D=/etc/systemd/system
+A="${ZLT_STATE:?}/active-"
+echo "systemctl $*" >> "$ZLT_STATE/calls"
+args=(); for a in "$@"; do [ "$a" = --no-block ] || args+=("$a"); done; set -- "${args[@]}"
+run(){ local l; l="$(grep -m1 "^$1=" "$D/$2" | cut -d= -f2-)"; [ -z "$l" ] || eval "$l"; }
+start(){
+  [ -e "$D/$1" ] || exit 5
+  [ -e "$ZLT_STATE/fail-restart" ] && exit 1
+  if [ -e "$ZLT_STATE/fail-once" ]; then rm -f "$ZLT_STATE/fail-once"; exit 1; fi
+  [ -e "$A$1" ] && return 0
+  run ExecStart "$1" && touch "$A$1"
+}
+stop(){ if [ -e "$A$1" ]; then run ExecStop "$1"; rm -f "$A$1"; fi; return 0; }
+case "$1" in
+  daemon-reload) exit 0 ;;
+  enable)  if [ "${2:-}" = --now ]; then start "$3"; fi ;;
+  start)   start "$2" ;;
+  restart) [ -e "$D/$2" ] || exit 5; stop "$2"; start "$2" ;;
+  disable) if [ "${2:-}" = --now ]; then stop "$3"; fi ;;
+  is-active)  if [ -e "$A$2" ]; then echo active; else echo inactive; exit 3; fi ;;
+  is-enabled) if [ -e "$D/$2" ]; then echo enabled; else echo disabled; exit 1; fi ;;
+  is-system-running) if [ -e "$ZLT_STATE/booting" ]; then echo starting; exit 1; else echo running; fi ;;
+  *) echo "nsbin/systemctl: unsupported $*" >&2; exit 1 ;;
+esac

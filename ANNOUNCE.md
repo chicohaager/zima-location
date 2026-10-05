@@ -4,10 +4,11 @@
 
 ---
 
-One thing that bugs a lot of ZimaOS/CasaOS users: there is **no global setting**
-for *where* apps store their data. Every store app hard-codes `/DATA/AppData/...`
-and `/DATA/Media` onto the system disk. Your only option is editing each app's
-volumes by hand — and every new install resets to `/DATA/...` again.
+One thing that bugs a lot of ZimaOS/CasaOS users: *where* apps store their data.
+Every store app hard-codes `/DATA/AppData/...` and `/DATA/Media`. ZimaOS's own
+Settings → Data Migration moves whole categories, but it won't take a USB drive as
+a destination for app data, and for some people the buttons simply stay greyed out.
+Then you're back to editing each app's volumes by hand.
 
 So I built a small tool: **zima-location**.
 
@@ -25,7 +26,9 @@ actually is. I tested this on real hardware: after a reboot the target disk move
 from `/dev/sdd` to `/dev/sdb`, and `/DATA/Media` stayed correctly bound. 🎯
 
 - ext4/btrfs/xfs only (exFAT/NTFS are rejected — container uid can't chown them)
-- migrates existing files, keeps a backup, one-command rollback
+- migrates existing files, keeps the original folder (renamed, not copied), one-command rollback
+- `status` tells you when a target disk dropped out (USB reset) instead of leaving you with I/O errors
+- auto-heal: plug the disk back in and the anchor re-binds by itself (udev rule on the disk's UUID)
 - optional tiny web UI (python3)
 - MIT OR Apache-2.0
 
@@ -41,7 +44,7 @@ sudo /etc/zima-location/zima-location.sh set /DATA/Media <UUID> Media
 ```
 
 There's also an optional little web UI (pick a disk → Apply). Heads-up: it runs as
-root and is unauthenticated, so keep it localhost-only (SSH tunnel) — don't expose
-the port.
+root and binds localhost by default, so reach it via SSH tunnel. If you expose it,
+set a token (`ZL_TOKEN`) — still at your own risk.
 
 Not affiliated with IceWhale. Feedback / issues welcome. Test `rollback` first. 🙂

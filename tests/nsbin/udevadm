@@ -1,0 +1,4 @@
+#!/bin/bash
+# udevadm for the namespace world: no udevd here. Records reloads so tests can assert them.
+echo "udevadm $*" >> "${ZLT_STATE:?}/calls"
+exit 0

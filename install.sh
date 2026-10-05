@@ -12,12 +12,28 @@ DEST="/etc/zima-location"   # root-only (not world-writable /DATA/AppData)
 command -v findmnt >/dev/null || { echo "ERROR: findmnt (util-linux) is required."; exit 1; }
 command -v systemctl >/dev/null || { echo "ERROR: systemd is required."; exit 1; }
 
-echo "Installing zima-location to $DEST ..."
-mkdir -p "$DEST"; chown root:root "$DEST"; chmod 0755 "$DEST"
+# Checkout only when this script is a real file. Under 'curl … | bash' BASH_SOURCE is empty and
+# $0 is "bash" -> dirname "." would pick up whatever zima-location.sh sits in the caller's cwd.
+SRC_DIR=""
+if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  [ -f "$SRC_DIR/zima-location.sh" ] || SRC_DIR=""
+fi
 
-if [ -f "$(dirname "$0")/zima-location.sh" ]; then cp "$(dirname "$0")/zima-location.sh" "$DEST/zima-location.sh"
-else curl -fsSL "$REPO_RAW/zima-location.sh" -o "$DEST/zima-location.sh"; fi
-chown root:root "$DEST/zima-location.sh"; chmod 0755 "$DEST/zima-location.sh"
+# fetch <repo-path> <dest-file> <mode>
+fetch(){
+  if [ -n "$SRC_DIR" ]; then cp "$SRC_DIR/$1" "$2"
+  else curl -fsSL "$REPO_RAW/$1" -o "$2"; fi
+  chown root:root "$2"; chmod "$3" "$2"
+}
+
+echo "Installing zima-location to $DEST (source: ${SRC_DIR:-$REPO_RAW}) ..."
+mkdir -p "$DEST/ui"; chown root:root "$DEST" "$DEST/ui"; chmod 0755 "$DEST" "$DEST/ui"
+fetch zima-location.sh "$DEST/zima-location.sh" 0755
+# UI files are only copied here; the UI service starts only via install-ui.sh.
+fetch ui/install-ui.sh "$DEST/ui/install-ui.sh" 0755
+fetch ui/server.py     "$DEST/ui/server.py"     0755
+fetch ui/index.html    "$DEST/ui/index.html"    0644
 
 cat <<EOF
 
@@ -30,5 +46,6 @@ Run it (root required):
   sudo $DEST/zima-location.sh rollback /DATA/Media
 
 Pick a NATIVE Linux fs disk (ext4/btrfs/xfs). exFAT/NTFS are rejected. See README.
-Optional web UI: sudo ui/install-ui.sh   (localhost-only by default).
+Optional web UI (needs python3, localhost-only by default):
+  sudo $DEST/ui/install-ui.sh 9797
 EOF

@@ -1,0 +1,13 @@
+#!/bin/bash
+# blkid for the namespace world. "Disks" are tmpfs mounts whose SOURCE is zl-disk-<uuid>;
+# a disk exists while $ZLT_STATE/disk-<uuid> exists (rm it to simulate an unplugged USB disk).
+set -u
+S="${ZLT_STATE:?}"
+line(){ printf 'zl-disk-%s: UUID="%s" TYPE="%s"\n' "$1" "$1" "$(cat "$S/disk-$1")"; }
+all(){ for f in "$S"/disk-*; do [ -e "$f" ] && line "${f##*/disk-}"; done; return 0; }
+case "${1:-}" in
+  -U) [ -e "$S/disk-$2" ] || exit 2; echo "zl-disk-$2" ;;
+  -o) dev="${*: -1}"; u="${dev#zl-disk-}"; [ -e "$S/disk-$u" ] || exit 2
+      [ "$4" = TYPE ] && cat "$S/disk-$u" || exit 2 ;;
+  *) all ;;
+esac

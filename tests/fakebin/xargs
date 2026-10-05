@@ -1,0 +1,4 @@
+#!/bin/bash
+# ZimaOS ships no xargs (measured on 1.7.1 and 1.8.0-beta1). Behave like a missing command.
+echo "xargs: command not found" >&2
+exit 127
