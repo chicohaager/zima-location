@@ -1,0 +1,6 @@
+#!/bin/bash
+# findmnt for the namespace world: '-S UUID=<u>' becomes '-S zl-disk-<u>' (the tmpfs source
+# name), then the REAL findmnt answers -- including the bind entries with their FSROOT.
+args=()
+for a in "$@"; do case "$a" in UUID=*) args+=("zl-disk-${a#UUID=}");; *) args+=("$a");; esac; done
+exec /usr/bin/findmnt "${args[@]}"

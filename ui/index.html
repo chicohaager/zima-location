@@ -32,6 +32,8 @@
   /* active redirect rows */
   .red{display:flex;align-items:center;gap:10px;border:1px solid var(--card-border);border-radius:var(--card-radius-sm);padding:11px 12px;margin-bottom:8px;font-size:14px}
   .red code{color:var(--text)}
+  .red .st.bad{color:var(--danger);background:var(--danger-tint);white-space:normal}
+  .err{color:var(--danger)}
   .red .st{margin-left:auto;font-size:11px;font-weight:600;color:var(--success);background:var(--success-tint);border-radius:999px;padding:3px 9px;white-space:nowrap}
   /* disk picker */
   label.disk{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--card-border);border-radius:var(--card-radius-sm);margin-bottom:8px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
@@ -84,18 +86,31 @@
 </div>
 <script>
 const $=s=>document.querySelector(s);
-async function api(a,body){const o=body?{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)}:{};const r=await fetch('/api?action='+a,o);return r.json();}
-function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+// ZL_TOKEN: open the page as http://host:port/?token=<secret>; every API call forwards it.
+const TOKEN=new URLSearchParams(location.search).get('token')||'';
+async function api(a,body){
+  const h=TOKEN?{'X-ZL-Token':TOKEN}:{};
+  const o=body?{method:'POST',headers:{...h,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)}:{headers:h};
+  let r,d;
+  try{r=await fetch('/api?action='+a,o);d=await r.json();}
+  catch(e){return {error:'request failed: '+e.message};}
+  if(!r.ok&&!d.error&&!d.log)d.error='HTTP '+r.status;
+  return d;
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function errBox(el,d){el.innerHTML=`<span class="err">Error: ${esc(d.error)}</span>`;}
 async function loadStatus(){
   const d=await api('status');const el=$('#status');
+  if(d.error){errBox(el,d);return;}
   if(!d.redirects||!d.redirects.length){el.innerHTML='<span class="empty">none</span>';return;}
   el.innerHTML=d.redirects.map(r=>`<div class="red"><code>${esc(r.anchor)}</code> &rarr; <code>${esc(r.source||'?')}</code>
-    <span class="st">${esc(r.active)} / ${esc(r.enabled)}</span>
+    <span class="st ${r.health==='OK'?'':'bad'}" title="${esc(r.health)}">${r.health==='OK'?esc(r.active)+' / '+esc(r.enabled):'⚠ '+esc(r.health)}</span>
     <button class="btn sm danger" data-anchor="${esc(r.anchor)}">Rollback</button></div>`).join('');
   el.querySelectorAll('button[data-anchor]').forEach(b=>b.addEventListener('click',()=>doRollback(b.dataset.anchor)));
 }
 async function loadDisks(){
   const d=await api('disks');const el=$('#disks');
+  if(d.error){errBox(el,d);return;}
   if(!d.disks||!d.disks.length){el.innerHTML='<span class="empty">no disks found</span>';return;}
   el.innerHTML=d.disks.map((x,i)=>`<label class="disk ${x.usable?'':'off'}">
     <input type="radio" name="disk" value="${esc(x.uuid)}" ${x.usable?'':'disabled'} ${i===0&&x.usable?'checked':''}>
@@ -108,11 +123,11 @@ async function doSet(){
   if(!uuid){alert('Pick a usable disk first.');return;}
   const anchor=$('#anchor').value.trim(),sub=$('#sub').value.trim()||'Media';
   if(!confirm(`Redirect ${anchor} → this disk /${sub}?\nExisting files in ${anchor} are copied to the disk (backup kept).`))return;
-  showLog('Applying…');const d=await api('set',{anchor,uuid,sub});showLog(d.log||JSON.stringify(d));loadStatus();
+  showLog('Applying…');const d=await api('set',{anchor,uuid,sub});showLog(d.log||d.error||JSON.stringify(d));loadStatus();loadDisks();
 }
 async function doRollback(anchor){
   if(!confirm(`Remove redirect for ${anchor}? Data on the target disk is kept.`))return;
-  showLog('Rolling back…');const d=await api('rollback',{anchor});showLog(d.log||JSON.stringify(d));loadStatus();
+  showLog('Rolling back…');const d=await api('rollback',{anchor});showLog(d.log||d.error||JSON.stringify(d));loadStatus();
 }
 function showLog(t){const p=$('#log');p.style.display='block';p.textContent=t;}
 loadStatus();loadDisks();
