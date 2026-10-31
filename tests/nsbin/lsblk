@@ -1,6 +1,6 @@
 #!/bin/bash
 # lsblk -rno FSTYPE,UUID for the namespace world. A disk with $ZLT_STATE/raid-<uuid> is an
-# mdadm array: like on ZimaOS (.184) its members carry the same UUID and are listed FIRST.
+# mdadm array: like on ZimaOS (second test NAS) its members carry the same UUID and are listed FIRST.
 set -u
 S="${ZLT_STATE:?}"
 for f in "$S"/disk-*; do
