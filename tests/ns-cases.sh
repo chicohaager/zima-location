@@ -133,7 +133,7 @@ check "N14 Anker wieder auf der alten Platte gebunden" has "$(src_of /DATA/Media
 bash "$CLI" rollback /DATA/Media >/dev/null 2>&1
 
 echo
-echo "RAID ohne xargs (Lage nas-test, ZimaOS 1.8.0-beta1):"
+echo "RAID ohne xargs (Lage auf dem zweiten Test-NAS, ZimaOS 1.8.0-beta1):"
 disk 7777 btrfs /media/Home-Storage; touch "$ZLT_STATE/raid-7777"
 out="$(bash "$CLI" set /DATA/Raid 7777 zl 2>&1)"; rc=$?
 check "N15 set auf RAID Exit 0" [ "$rc" = 0 ]
@@ -161,7 +161,7 @@ out="$(bash "$CLI" heal /DATA/Heal 2>&1)"
 check "N17 heal auf gesundem Anker tut nichts" has "$out" "gesund"
 check "N17 ... kein restart" bash -c '! grep -q "restart" "$ZLT_STATE/calls"'
 
-# Lage nas-main nach dem Umstecken: Anker nicht (mehr) gebunden, Platte wieder da.
+# Lage auf dem Test-NAS nach dem Umstecken: Anker nicht (mehr) gebunden, Platte wieder da.
 umount /DATA/Heal
 touch "$ZLT_STATE/booting"; : > "$ZLT_STATE/calls"
 out="$(bash "$CLI" heal /DATA/Heal 2>&1)"

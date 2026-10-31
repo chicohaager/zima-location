@@ -117,7 +117,7 @@ validate_uuid(){
   fstype=""
   [ -n "$dev" ] && fstype="$(blkid -o value -s TYPE "$dev" 2>/dev/null || true)"
   # Fallback: bei mdadm-RAID tragen die Mitgliedsplatten dieselbe UUID wie das Array
-  # (gemessen nas-test: sda/sdb linux_raid_member, md0 btrfs) -> Mitglieder überspringen.
+  # (gemessen auf dem zweiten Test-NAS: sda/sdb linux_raid_member, md0 btrfs) -> Mitglieder überspringen.
   [ -z "$fstype" ] && fstype="$(lsblk -rno FSTYPE,UUID 2>/dev/null \
         | awk -v u="$uuid" '$2==u && $1!="linux_raid_member"{print $1; exit}' || true)"
   [ -n "$fstype" ] || die "UUID $uuid nicht gefunden (blkid/lsblk)."
@@ -303,7 +303,7 @@ EOF
 
 # ---- Auto-Heal ----
 # Taucht die Platte zur Laufzeit wieder auf (USB umgesteckt, Reset), bindet nichts den Anker
-# neu — die Boot-Unit lief schon (gemessen nas-main, 05.10.2026: Anker blieb leer, bis 'set' lief).
+# neu — die Boot-Unit lief schon (gemessen auf dem Test-NAS, 05.10.2026: Anker blieb leer, bis 'set' lief).
 # Die udev-Regel stößt deshalb eine Heal-Unit an. Nicht direkt aus der Regel mounten:
 # systemd-udevd läuft mit PrivateMounts=yes (gemessen ZimaOS 1.7.1), der Mount käme beim Host
 # nie an. RAID-Mitglieder tragen die UUID des Arrays (linux_raid_member) -> ausgeschlossen;
